@@ -1,0 +1,48 @@
+name: Update HTML from JSON
+
+on:
+  push:
+    paths:
+      - '*.json'
+  workflow_dispatch: {}
+
+jobs:
+  convert-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Pull json_data branch
+      run: |
+        git fetch origin json_data
+        git checkout json_data
+        cp estafeta_games_data.json ..
+        git fetch origin auto_html
+        git checkout auto_html
+        cp index.html ..
+        git checkout main
+        cp json_to_html.py ..
+        git checkout auto_html
+        cd ..
+        python json_to_html.py -i estafeta_games_data.json -o index.html
+        cd -
+        cp ../index.html .
+
+    - name: Commit and push changes
+      run: |
+        git config --global user.name "GitHub Actions"
+        git config --global user.email "actions@github.com"
+        git add index.html
+        git diff --quiet && git diff --staged --quiet || git commit -m "[bot] Auto-update HTML from JSON data."       
+        git push origin auto_html
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
