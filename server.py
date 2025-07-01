@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 port = os.getenv('PORT')
+github_token = os.getenv('GITHUB_TOKEN')
+github_owner = os.getenv('GITHUB_OWNER')
+github_repo = os.getenv('GITHUB_REPO')
 
 app = FastAPI()
 
@@ -81,9 +84,30 @@ async def read_root():
             .suggestion-item {{
                 padding: 10px;
                 cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 10px;
             }}
             .suggestion-item:hover {{
                 background-color: #f0f0f0;
+            }}
+            .suggestion-item img {{
+                width: 26px;
+                height: 36px;
+                object-fit: cover;
+            }}
+            button {{
+                background-color: #4CAF50;
+                color: white;
+                padding: 10px 15px;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 16px;
+                width: 100%;
+            }}
+            button:hover {{
+                background-color: #45a049;
             }}
         </style>
     </head>
@@ -162,6 +186,8 @@ async def read_root():
                 <label for="co-op">CO-OP:</label>
                 <textarea id="co-op" rows="4" placeholder="CO-OP игроки (по одной строке на каждую запись)"></textarea>
             </div>
+
+            <button onclick="saveData()">Сохранить</button>
         </div>
 
         <script>
@@ -181,7 +207,17 @@ async def read_root():
                 data.forEach(item => {{
                     const div = document.createElement('div');
                     div.className = 'suggestion-item';
-                    div.innerText = item.name;
+                    
+                    if (item.box_art_url) {{
+                        const img = document.createElement('img');
+                        img.src = item.box_art_url;
+                        div.appendChild(img);
+                    }}
+                    
+                    const text = document.createElement('span');
+                    text.innerText = item.name;
+                    div.appendChild(text);
+                    
                     div.onclick = () => {{
                         document.getElementById('search').value = item.name;
                         suggestionsDiv.style.display = 'none';
@@ -190,6 +226,51 @@ async def read_root():
                 }});
 
                 suggestionsDiv.style.display = data.length ? 'block' : 'none';
+            }}
+
+            async function saveData() {{
+                const gameData = {{
+                    player: document.getElementById('player').value,
+                    game: document.getElementById('search').value,
+                    month: document.getElementById('month').value.padStart(2, '0'),
+                    year: document.getElementById('year').value,
+                    platform: document.getElementById('platform').value,
+                    status: document.getElementById('status').value,
+                    "co-op": document.getElementById('co-op').value.split('\\n').filter(line => line.trim())
+                }};
+
+                if (!gameData.game) {{
+                    alert('Пожалуйста, введите название игры');
+                    return;
+                }}
+
+                try {{
+                    const response = await fetch('https://api.github.com/repos/{github_owner}/{github_repo}/actions/workflows/json_editor.yml/dispatches', {{
+                        method: 'POST',
+                        headers: {{
+                            'Authorization': `Bearer {github_token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }},
+                        body: JSON.stringify({{
+                            ref: 'main',
+                            inputs: {{
+                                add_walkthrough_data: JSON.stringify(gameData)
+                            }}
+                        }})
+                    }});
+
+                    if (response.ok) {{
+                        alert('Данные успешно отправлены!');
+                        document.getElementById('search').value = '';
+                        document.getElementById('platform').value = '';
+                        document.getElementById('co-op').value = '';
+                    }} else {{
+                        const error = await response.json();
+                        alert(`Ошибка: ${{error.message}}`);
+                    }}
+                }} catch (error) {{
+                    alert(`Ошибка при отправке данных: ${{error}}`);
+                }}
             }}
         </script>
     </body>
