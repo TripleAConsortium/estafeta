@@ -1,0 +1,140 @@
+name: Game Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      add_walkthrough_data:
+        description: 'Walkthrough data in JSON format for adding a new walkthrough'
+        required: false
+      delete_walkthrough_id:
+        description: 'ID of the walkthrough to delete'
+        required: false
+      replace_walkthrough_id:
+        description: 'ID of the walkthrough to replace'
+        required: false
+      replace_walkthrough_data:
+        description: 'New walkthrough data in JSON format for replacing an existing walkthrough'
+        required: false
+
+jobs:
+  add-walkthrough:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.add_walkthrough_data != '' }}
+    steps:
+      - name: Checkout json_data branch
+        uses: actions/checkout@v3
+        with:
+          ref: json_data  # Specify the branch to check out
+
+      - name: Add walkthrough to estafeta_games_data.json
+        run: |
+          # Read the input JSON
+          INPUT_JSON='${{ github.event.inputs.add_walkthrough_data }}'
+
+          htmlDecode() {
+              echo "$1" | sed -e 's/&amp;/&/g' \
+                               -e 's/&lt;/</g' \
+                               -e 's/&gt;/>/g' \
+                               -e 's/&quot;/"/g' \
+                               -e 's/&#39;/'\''/g'
+          }
+          
+          DECODED_JSON=$(htmlDecode "$INPUT_JSON")
+          
+          # Check if file exists, if not create it with empty array
+          if [ ! -f "estafeta_games_data.json" ]; then
+            echo "[]" > estafeta_games_data.json
+          fi
+          
+          # Generate a new ID
+          MAX_ID=$(jq 'map(.id) | max // 0' estafeta_games_data.json)
+          NEW_ID=$((MAX_ID + 1))
+          DECODED_JSON=$(echo "$DECODED_JSON" | jq --argjson new_id "$NEW_ID" '.id = $new_id')
+          
+          # Add new entry to the array
+          jq --argjson new_entry "$DECODED_JSON" '. += [$new_entry]' estafeta_games_data.json > temp.json
+          mv temp.json estafeta_games_data.json
+          
+          # Configure git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Commit and push changes to json_data branch
+          git add estafeta_games_data.json
+          git commit -m "Add new walkthrough entry via GitHub Actions"
+          git push origin json_data
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  delete-walkthrough:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.delete_walkthrough_id != '' }}
+    steps:
+      - name: Checkout json_data branch
+        uses: actions/checkout@v3
+        with:
+          ref: json_data
+
+      - name: Delete walkthrough from estafeta_games_data.json
+        run: |
+          WALKTHROUGH_ID='${{ github.event.inputs.delete_walkthrough_id }}'
+          
+          # Remove the walkthrough entry by ID
+          jq "del(.[] | select(.id == $WALKTHROUGH_ID))" estafeta_games_data.json > temp.json
+          mv temp.json estafeta_games_data.json
+          
+          # Configure git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Commit and push changes to json_data branch
+          git add estafeta_games_data.json
+          git commit -m "Delete walkthrough entry with ID $WALKTHROUGH_ID via GitHub Actions"
+          git push origin json_data
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  replace-walkthrough:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.replace_walkthrough_id != '' && github.event.inputs.replace_walkthrough_data != '' }}
+    steps:
+      - name: Checkout json_data branch
+        uses: actions/checkout@v3
+        with:
+          ref: json_data
+
+      - name: Replace walkthrough in estafeta_games_data.json
+        run: |
+          WALKTHROUGH_ID='${{ github.event.inputs.replace_walkthrough_id }}'
+          NEW_WALKTHROUGH_DATA='${{ github.event.inputs.replace_walkthrough_data }}'
+
+          htmlDecode() {
+              echo "$1" | sed -e 's/&amp;/&/g' \
+                               -e 's/&lt;/</g' \
+                               -e 's/&gt;/>/g' \
+                               -e 's/&quot;/"/g' \
+                               -e 's/&#39;/'\''/g'
+          }
+
+          DECODED_DATA=$(htmlDecode "$NEW_WALKTHROUGH_DATA")
+          
+          # Ensure the new data has the correct ID
+          NEW_DATA_WITH_ID=$(echo "$DECODED_DATA" | jq --argjson id "$WALKTHROUGH_ID" '.id = $id')
+          
+          # Replace the walkthrough entry by ID
+          jq "(.[] | select(.id == $WALKTHROUGH_ID)) = $NEW_DATA_WITH_ID" estafeta_games_data.json > temp.json
+          mv temp.json estafeta_games_data.json
+          
+          # Configure git
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Commit and push changes to json_data branch
+          git add estafeta_games_data.json
+          git commit -m "Replace walkthrough entry with ID $WALKTHROUGH_ID via GitHub Actions"
+          git push origin json_data
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
