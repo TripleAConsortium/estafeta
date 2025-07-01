@@ -214,11 +214,21 @@ async def read_root():
             <div class="button-group">
                 <button onclick="saveData()">Сохранить</button>
                 <button class="delete-button" onclick="deleteData()">Удалить по ID</button>
+                <button class="open-source-button" onclick="editData()">Изменить по ID</button>
                 <button class="open-source-button" onclick="openSourceData()">Открыть исходные данные ↗</button>
             </div>
         </div>
 
         <script>
+
+            function htmlEncode(str) {{
+                return str.replace(/&/g, "&amp;")
+                          .replace(/</g, "&lt;")
+                          .replace(/>/g, "&gt;")
+                          .replace(/"/g, "&quot;")
+                          .replace(/'/g, "&#39;");
+            }}
+
             async function fetchSuggestions() {{
                 const input = document.getElementById('search').value;
                 const suggestionsDiv = document.getElementById('suggestions');
@@ -259,12 +269,12 @@ async def read_root():
             async function saveData() {{
                 const gameData = {{
                     player: document.getElementById('player').value,
-                    game: document.getElementById('search').value,
+                    game: htmlEncode(document.getElementById('search').value),
                     month: document.getElementById('month').value.padStart(2, '0'),
                     year: document.getElementById('year').value,
                     platform: document.getElementById('platform').value,
                     status: document.getElementById('status').value,
-                    "co-op": document.getElementById('co-op').value.split('\\n').filter(line => line.trim())
+                    "co-op": document.getElementById('co-op').value.split('\\n').filter(line => htmlEncode(line.trim()))
                 }};
 
                 if (!gameData.game) {{
@@ -286,6 +296,56 @@ async def read_root():
                             }}
                         }})
                     }});
+
+                    if (response.ok) {{
+                        alert('Данные успешно отправлены!');
+                        document.getElementById('search').value = '';
+                        document.getElementById('platform').value = '';
+                        document.getElementById('co-op').value = '';
+                    }} else {{
+                        const error = await response.json();
+                        alert(`Ошибка: ${{error.message}}`);
+                    }}
+                }} catch (error) {{
+                    alert(`Ошибка при отправке данных: ${{error}}`);
+                }}
+            }}
+
+            async function editData() {{
+                const gameData = {{
+                    player: document.getElementById('player').value,
+                    game: htmlEncode(document.getElementById('search').value),
+                    month: document.getElementById('month').value.padStart(2, '0'),
+                    year: document.getElementById('year').value,
+                    platform: document.getElementById('platform').value,
+                    status: document.getElementById('status').value,
+                    "co-op": document.getElementById('co-op').value.split('\\n').filter(line => htmlEncode(line.trim()))
+                }};
+
+                if (!gameData.game) {{
+                    alert('Пожалуйста, введите название игры');
+                    return;
+                }}
+
+                const id = prompt('Введите ID для удаления:');
+                if (!id) return;
+
+                try {{
+                    const response = await fetch('https://api.github.com/repos/{github_owner}/{github_repo}/actions/workflows/json_editor.yml/dispatches', {{
+                        method: 'POST',
+                        headers: {{
+                            'Authorization': `Bearer {github_token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }},
+                        body: JSON.stringify({{
+                            ref: 'main',
+                            inputs: {{
+                                replace_walkthrough_data: JSON.stringify(gameData),
+                                replace_walkthrough_id: id
+                            }}
+                        }})
+                    }});
+                    console.log(JSON.stringify(gameData))
 
                     if (response.ok) {{
                         alert('Данные успешно отправлены!');
@@ -355,4 +415,4 @@ async def search(query: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=int(port))
