@@ -1,0 +1,2753 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Completion Table</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+            position: relative;
+        }
+        th:hover {
+            background-color: #e6e6e6;
+        }
+        th.sort-asc::after {
+            content: " ↑";
+        }
+        th.sort-desc::after {
+            content: " ↓";
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .completed {
+            color: green;
+            font-weight: bold;
+        }
+        .dropped {
+            color: red;
+            font-weight: bold;
+        }
+        select, input {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            min-width: 120px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Game Completion Tracker</h1>
+    
+    <div class="controls">
+        <select id="playerFilter">
+            <option value="">All Players</option>
+            <option value="P">Player P</option>
+            <option value="T">Player T</option>
+            <option value="R">Player R</option>
+        </select>
+        
+        <select id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="completed">Completed</option>
+            <option value="dropped">Dropped</option>
+        </select>
+        
+        <select id="platformFilter">
+            <option value="">All Platforms</option>
+        </select>
+        
+        <input type="text" id="gameSearch" placeholder="Search by game name...">
+        
+        <button id="resetFilters">Reset Filters</button>
+    </div>
+    
+    <table id="gamesTable">
+        <thead>
+            <tr>
+                <th data-column="player">Player</th>
+                <th data-column="game">Game</th>
+                <th data-column="month">Month</th>
+                <th data-column="year">Year</th>
+                <th data-column="platform">Platform</th>
+                <th data-column="status">Status</th>
+                <th data-column="co-op">Co-op Partners</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Data will be inserted here by JavaScript -->
+        </tbody>
+    </table>
+    
+    <script>
+        // Load data from embedded JSON
+        const originalData = [
+  {
+    "player": "P",
+    "game": "Final Fantasy III",
+    "month": "04",
+    "year": "2022",
+    "platform": "PSP",
+    "status": "dropped",
+    "co-op": [],
+    "id": 1
+  },
+  {
+    "player": "T",
+    "game": "Guerrilla War",
+    "month": "06",
+    "year": "2022",
+    "platform": "NES",
+    "status": "completed",
+    "co-op": [],
+    "id": 2
+  },
+  {
+    "player": "R",
+    "game": "Pop'n TwinBee",
+    "month": "06",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [],
+    "id": 3
+  },
+  {
+    "player": "P",
+    "game": "Felix the Cat",
+    "month": "06",
+    "year": "2022",
+    "platform": "(PSP)NES",
+    "status": "completed",
+    "co-op": [],
+    "id": 4
+  },
+  {
+    "player": "T",
+    "game": "Gunstar Heroes",
+    "month": "06",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [],
+    "id": 5
+  },
+  {
+    "player": "R",
+    "game": "Parodius",
+    "month": "06",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [],
+    "id": 6
+  },
+  {
+    "player": "R",
+    "game": "Detana TwinBee Yahho! Deluxe Pack",
+    "month": "06",
+    "year": "2022",
+    "platform": "PS1",
+    "status": "completed",
+    "co-op": [],
+    "id": 7
+  },
+  {
+    "player": "T",
+    "game": "Sonic the Hedgehog",
+    "month": "07",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "dropped",
+    "co-op": [],
+    "id": 8
+  },
+  {
+    "player": "R",
+    "game": "Sonic Unleashed",
+    "month": "07",
+    "year": "2022",
+    "platform": "X360",
+    "status": "completed",
+    "co-op": [],
+    "id": 9
+  },
+  {
+    "player": "P",
+    "game": "Sonic the Hedgehog",
+    "month": "07",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "dropped",
+    "co-op": [],
+    "id": 10
+  },
+  {
+    "player": "T",
+    "game": "QuackShot",
+    "month": "07",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "dropped",
+    "co-op": [],
+    "id": 11
+  },
+  {
+    "player": "R",
+    "game": "Golden Axe: Beast Rider",
+    "month": "07",
+    "year": "2022",
+    "platform": "X360",
+    "status": "completed",
+    "co-op": [],
+    "id": 12
+  },
+  {
+    "player": "P",
+    "game": "Streets of Rage 2",
+    "month": "07",
+    "year": "2022",
+    "platform": "(PSP)SMD",
+    "status": "completed",
+    "co-op": [],
+    "id": 13
+  },
+  {
+    "player": "P",
+    "game": "Risk",
+    "month": "07",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "dropped",
+    "co-op": [],
+    "id": 14
+  },
+  {
+    "player": "P",
+    "game": "Streets of Rage 3",
+    "month": "07",
+    "year": "2022",
+    "platform": "(PSP)SMD",
+    "status": "dropped",
+    "co-op": [],
+    "id": 15
+  },
+  {
+    "player": "P",
+    "game": "Golden Axe 3",
+    "month": "07",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "dropped",
+    "co-op": [],
+    "id": 16
+  },
+  {
+    "player": "P",
+    "game": "Bare Knuckle III",
+    "month": "07",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [],
+    "id": 17
+  },
+  {
+    "player": "P",
+    "game": "Knights of the Round",
+    "month": "07",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "dropped",
+    "co-op": [],
+    "id": 18
+  },
+  {
+    "player": "P",
+    "game": "Streets of Rage 4",
+    "month": "08",
+    "year": "2022",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 19
+  },
+  {
+    "player": "P",
+    "game": "Zombotron",
+    "month": "08",
+    "year": "2022",
+    "platform": "macOS",
+    "status": "dropped",
+    "co-op": [],
+    "id": 20
+  },
+  {
+    "player": "R",
+    "game": "Final Vendetta",
+    "month": "09",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 21
+  },
+  {
+    "player": "R",
+    "game": "Gunstar Heroes",
+    "month": "09",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [],
+    "id": 22
+  },
+  {
+    "player": "T",
+    "game": "World of Illusion",
+    "month": "09",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 23
+  },
+  {
+    "player": "R",
+    "game": "World of Illusion",
+    "month": "09",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 24
+  },
+  {
+    "player": "R",
+    "game": "World of Illusion",
+    "month": "09",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "P"
+    ],
+    "id": 25
+  },
+  {
+    "player": "P",
+    "game": "World of Illusion",
+    "month": "09",
+    "year": "2022",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 26
+  },
+  {
+    "player": "T",
+    "game": "Goof Troop",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 27
+  },
+  {
+    "player": "R",
+    "game": "Goof Troop",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 28
+  },
+  {
+    "player": "R",
+    "game": "Battletoads & Double Dragon",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "dropped",
+    "co-op": [
+      "P"
+    ],
+    "id": 29
+  },
+  {
+    "player": "P",
+    "game": "Battletoads & Double Dragon",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "dropped",
+    "co-op": [
+      "R"
+    ],
+    "id": 30
+  },
+  {
+    "player": "R",
+    "game": "Battletoads 1994",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "P"
+    ],
+    "id": 31
+  },
+  {
+    "player": "P",
+    "game": "Battletoads 1994",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "R"
+    ],
+    "id": 32
+  },
+  {
+    "player": "T",
+    "game": "Battletoads 1994",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "P",
+      "R"
+    ],
+    "id": 33
+  },
+  {
+    "player": "R",
+    "game": "Knights of the Round 1991",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "P"
+    ],
+    "id": 34
+  },
+  {
+    "player": "P",
+    "game": "Knights of the Round 1991",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "R"
+    ],
+    "id": 35
+  },
+  {
+    "player": "T",
+    "game": "Knights of the Round 1991",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "P",
+      "R"
+    ],
+    "id": 36
+  },
+  {
+    "player": "R",
+    "game": "MetalSlug 1996",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "P"
+    ],
+    "id": 37
+  },
+  {
+    "player": "P",
+    "game": "MetalSlug 1996",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 38
+  },
+  {
+    "player": "R",
+    "game": "Gunstar Super Heroes",
+    "month": "09",
+    "year": "2022",
+    "platform": "GBA",
+    "status": "completed",
+    "co-op": [],
+    "id": 39
+  },
+  {
+    "player": "T",
+    "game": "Kirby Super All-Stars",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 40
+  },
+  {
+    "player": "R",
+    "game": "Kirby Super All-Stars",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 41
+  },
+  {
+    "player": "R",
+    "game": "Double Dragon Neon",
+    "month": "09",
+    "year": "2022",
+    "platform": "X360",
+    "status": "completed",
+    "co-op": [],
+    "id": 42
+  },
+  {
+    "player": "R",
+    "game": "Legend",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [
+      "P"
+    ],
+    "id": 43
+  },
+  {
+    "player": "P",
+    "game": "Legend",
+    "month": "09",
+    "year": "2022",
+    "platform": "SNES",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 44
+  },
+  {
+    "player": "T",
+    "game": "The King of Dragons 1991",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "R",
+      "P"
+    ],
+    "id": 45
+  },
+  {
+    "player": "R",
+    "game": "The King of Dragons 1991",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "P"
+    ],
+    "id": 46
+  },
+  {
+    "player": "P",
+    "game": "The King of Dragons 1991",
+    "month": "09",
+    "year": "2022",
+    "platform": "Arcade",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "R"
+    ],
+    "id": 47
+  },
+  {
+    "player": "P",
+    "game": "Crash Bandicoot",
+    "month": "09",
+    "year": "2022",
+    "platform": "PS1",
+    "status": "completed",
+    "co-op": [],
+    "id": 48
+  },
+  {
+    "player": "T",
+    "game": "Adventures of Lolo",
+    "month": "10",
+    "year": "2022",
+    "platform": "NES",
+    "status": "completed",
+    "co-op": [],
+    "id": 49
+  },
+  {
+    "player": "R",
+    "game": "Legend of Grimrock",
+    "month": "10",
+    "year": "2022",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 50
+  },
+  {
+    "player": "P",
+    "game": "Killzone: Liberation",
+    "month": "10",
+    "year": "2022",
+    "platform": "PSP",
+    "status": "completed",
+    "co-op": [],
+    "id": 51
+  },
+  {
+    "player": "T",
+    "game": "Pink Panther: Pinkadelic Pursuit",
+    "month": "10",
+    "year": "2022",
+    "platform": "PS1",
+    "status": "completed",
+    "co-op": [],
+    "id": 52
+  },
+  {
+    "player": "R",
+    "game": "Kirby & the Amazing Mirror",
+    "month": "10",
+    "year": "2022",
+    "platform": "GBA",
+    "status": "completed",
+    "co-op": [],
+    "id": 53
+  },
+  {
+    "player": "P",
+    "game": "God of War: Chains of Olympus",
+    "month": "10",
+    "year": "2022",
+    "platform": "PSP",
+    "status": "completed",
+    "co-op": [],
+    "id": 54
+  },
+  {
+    "player": "R",
+    "game": "PoP: The Forgotten Sands",
+    "month": "10",
+    "year": "2022",
+    "platform": "Wii",
+    "status": "completed",
+    "co-op": [],
+    "id": 55
+  },
+  {
+    "player": "P",
+    "game": "God of War: Ghost of Sparta",
+    "month": "10",
+    "year": "2022",
+    "platform": "PSP",
+    "status": "dropped",
+    "co-op": [],
+    "id": 56
+  },
+  {
+    "player": "R",
+    "game": "Adventures of Lolo 2",
+    "month": "10",
+    "year": "2022",
+    "platform": "NES",
+    "status": "completed",
+    "co-op": [],
+    "id": 57
+  },
+  {
+    "player": "P",
+    "game": "Soldier of Fortune",
+    "month": "10",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 58
+  },
+  {
+    "player": "R",
+    "game": "Age of Mythology",
+    "month": "10",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 59
+  },
+  {
+    "player": "P",
+    "game": "Red Faction",
+    "month": "10",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 60
+  },
+  {
+    "player": "R",
+    "game": "AoM All DLCs",
+    "month": "10",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 61
+  },
+  {
+    "player": "P",
+    "game": "Medal of Honor: Allied Assault",
+    "month": "10",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 62
+  },
+  {
+    "player": "T",
+    "game": "Prince of Persia 2008",
+    "month": "11",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 63
+  },
+  {
+    "player": "T",
+    "game": "StarCraft 2: Heart of the Swarm",
+    "month": "12",
+    "year": "2022",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 64
+  },
+  {
+    "player": "R",
+    "game": "20XX",
+    "month": "12",
+    "year": "2022",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 65
+  },
+  {
+    "player": "T",
+    "game": "Sonic the Hedgehog 4: Episode 1",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 66
+  },
+  {
+    "player": "R",
+    "game": "Darksiders",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 67
+  },
+  {
+    "player": "P",
+    "game": "Prodeus",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 68
+  },
+  {
+    "player": "R",
+    "game": "Momodora: Reverie Under the Moonlight",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 69
+  },
+  {
+    "player": "P",
+    "game": "Star Wars: Republic Commando",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 70
+  },
+  {
+    "player": "R",
+    "game": "Battlefield 3",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 71
+  },
+  {
+    "player": "P",
+    "game": "The Punisher",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 72
+  },
+  {
+    "player": "R",
+    "game": "Sonic the Hedgehog 4: Episode 2",
+    "month": "01",
+    "year": "2023",
+    "platform": "PS3",
+    "status": "completed",
+    "co-op": [],
+    "id": 73
+  },
+  {
+    "player": "P",
+    "game": "Tom Clancy's Rainbow Six: Vegas 2",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 74
+  },
+  {
+    "player": "P",
+    "game": "Dark Messiah of Might and Magic",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 75
+  },
+  {
+    "player": "P",
+    "game": "Medal of Honor: Airborne",
+    "month": "01",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 76
+  },
+  {
+    "player": "T",
+    "game": "Batman: Arkham Asylum",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 77
+  },
+  {
+    "player": "R",
+    "game": "Heavy Metal F.A.K.K. 2",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 78
+  },
+  {
+    "player": "P",
+    "game": "Star Wars: Starfighter",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 79
+  },
+  {
+    "player": "R",
+    "game": "Heavenly Sword",
+    "month": "02",
+    "year": "2023",
+    "platform": "PS3",
+    "status": "completed",
+    "co-op": [],
+    "id": 80
+  },
+  {
+    "player": "P",
+    "game": "HP and the Sorcerer's Stone",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 81
+  },
+  {
+    "player": "R",
+    "game": "SEUM: Speedrunners from Hell",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 82
+  },
+  {
+    "player": "P",
+    "game": "HP and the Chamber of Secrets",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 83
+  },
+  {
+    "player": "R",
+    "game": "Mega Man 9",
+    "month": "02",
+    "year": "2023",
+    "platform": "NSwitch",
+    "status": "completed",
+    "co-op": [],
+    "id": 84
+  },
+  {
+    "player": "P",
+    "game": "Star Wars Jedi Knight: Jedi Academy",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 85
+  },
+  {
+    "player": "R",
+    "game": "Mega Man 10",
+    "month": "02",
+    "year": "2023",
+    "platform": "NSwitch",
+    "status": "completed",
+    "co-op": [],
+    "id": 86
+  },
+  {
+    "player": "P",
+    "game": "\u2620\ufe0f Pirates of the Caribbean: At World's End",
+    "month": "02",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 87
+  },
+  {
+    "player": "R",
+    "game": "HP and the Sorcerer's Stone",
+    "month": "02",
+    "year": "2023",
+    "platform": "GC",
+    "status": "completed",
+    "co-op": [],
+    "id": 88
+  },
+  {
+    "player": "R",
+    "game": "Kirby: Squeak Squad",
+    "month": "02",
+    "year": "2023",
+    "platform": "NDS",
+    "status": "completed",
+    "co-op": [],
+    "id": 89
+  },
+  {
+    "player": "R",
+    "game": "Shadow the Hedgehog",
+    "month": "03",
+    "year": "2023",
+    "platform": "GC",
+    "status": "completed",
+    "co-op": [],
+    "id": 90
+  },
+  {
+    "player": "P",
+    "game": "Wii Sports",
+    "month": "03",
+    "year": "2023",
+    "platform": "Wii",
+    "status": "completed",
+    "co-op": [],
+    "id": 91
+  },
+  {
+    "player": "R",
+    "game": "PoP 2: The Shadow and the Flame",
+    "month": "03",
+    "year": "2023",
+    "platform": "Mac OS 8",
+    "status": "completed",
+    "co-op": [],
+    "id": 92
+  },
+  {
+    "player": "R",
+    "game": "RosenkreuzStilette",
+    "month": "03",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 93
+  },
+  {
+    "player": "R",
+    "game": "HP and the Prisoner of Azkaban",
+    "month": "03",
+    "year": "2023",
+    "platform": "PS2",
+    "status": "completed",
+    "co-op": [],
+    "id": 94
+  },
+  {
+    "player": "R",
+    "game": "Ricochet Xtreme",
+    "month": "03",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 95
+  },
+  {
+    "player": "R",
+    "game": "Knight 'n' Grail",
+    "month": "04",
+    "year": "2023",
+    "platform": "C64",
+    "status": "completed",
+    "co-op": [],
+    "id": 96
+  },
+  {
+    "player": "P",
+    "game": "Tom Clancy's Splinter Cell",
+    "month": "04",
+    "year": "2023",
+    "platform": "JVM",
+    "status": "completed",
+    "co-op": [],
+    "id": 97
+  },
+  {
+    "player": "R",
+    "game": "Kirby's Epic Yarn",
+    "month": "04",
+    "year": "2023",
+    "platform": "Wii",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 98
+  },
+  {
+    "player": "P",
+    "game": "Assassin's Creed: Altair's Chronicles",
+    "month": "04",
+    "year": "2023",
+    "platform": "NDS",
+    "status": "completed",
+    "co-op": [],
+    "id": 99
+  },
+  {
+    "player": "T",
+    "game": "HP and the Goblet of Fire",
+    "month": "04",
+    "year": "2023",
+    "platform": "Xbox",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 100
+  },
+  {
+    "player": "R",
+    "game": "HP and the Goblet of Fire",
+    "month": "04",
+    "year": "2023",
+    "platform": "Xbox",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 101
+  },
+  {
+    "player": "P",
+    "game": "Sega Casino",
+    "month": "04",
+    "year": "2023",
+    "platform": "NDS",
+    "status": "completed",
+    "co-op": [],
+    "id": 102
+  },
+  {
+    "player": "T",
+    "game": "Gato Roboto",
+    "month": "05",
+    "year": "2023",
+    "platform": null,
+    "status": "completed",
+    "co-op": [],
+    "id": 103
+  },
+  {
+    "player": "R",
+    "game": "Unravel",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 104
+  },
+  {
+    "player": "T",
+    "game": "TMNT: Shredder's Revenge",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 105
+  },
+  {
+    "player": "R",
+    "game": "TMNT: Shredder's Revenge",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 106
+  },
+  {
+    "player": "T",
+    "game": "Infernax",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 107
+  },
+  {
+    "player": "R",
+    "game": "Infernax",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 108
+  },
+  {
+    "player": "R",
+    "game": "The Final Fantasy Legend",
+    "month": "05",
+    "year": "2023",
+    "platform": "GB",
+    "status": "completed",
+    "co-op": [],
+    "id": 109
+  },
+  {
+    "player": "R",
+    "game": "LEGO Harry Potter Collection: Years 1-4",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 110
+  },
+  {
+    "player": "T",
+    "game": "Gears of War: Ultimate Edition",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 111
+  },
+  {
+    "player": "R",
+    "game": "Gears of War: Ultimate Edition",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 112
+  },
+  {
+    "player": "R",
+    "game": "Mega Man X Legacy Collection 1",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "dropped",
+    "co-op": [],
+    "id": 113
+  },
+  {
+    "player": "R",
+    "game": "Mega Man X7",
+    "month": "05",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [],
+    "id": 114
+  },
+  {
+    "player": "T",
+    "game": "Gears of War 2",
+    "month": "06",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 115
+  },
+  {
+    "player": "R",
+    "game": "Gears of War 2",
+    "month": "06",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 116
+  },
+  {
+    "player": "R",
+    "game": "Atomic Heart",
+    "month": "06",
+    "year": "2023",
+    "platform": "XCloud",
+    "status": "completed",
+    "co-op": [],
+    "id": 117
+  },
+  {
+    "player": "R",
+    "game": "Gungrave G.O.R.E",
+    "month": "06",
+    "year": "2023",
+    "platform": "XCloud",
+    "status": "completed",
+    "co-op": [],
+    "id": 118
+  },
+  {
+    "player": "R",
+    "game": "S.W.I.N.E. HD Remaster",
+    "month": "06",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 119
+  },
+  {
+    "player": "R",
+    "game": "Halo: Combat Evolved Anniversary",
+    "month": "07",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 120
+  },
+  {
+    "player": "P",
+    "game": "Castlevania: Symphony of the Night",
+    "month": "07",
+    "year": "2023",
+    "platform": "PS1",
+    "status": "completed",
+    "co-op": [],
+    "id": 121
+  },
+  {
+    "player": "T",
+    "game": "Titan Quest Anniversary Edition",
+    "month": "07",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R",
+      "P"
+    ],
+    "id": 122
+  },
+  {
+    "player": "R",
+    "game": "Titan Quest Anniversary Edition",
+    "month": "07",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "P"
+    ],
+    "id": 123
+  },
+  {
+    "player": "P",
+    "game": "Titan Quest Anniversary Edition",
+    "month": "07",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "R"
+    ],
+    "id": 124
+  },
+  {
+    "player": "R",
+    "game": "Halo 2: Anniversary",
+    "month": "07",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 125
+  },
+  {
+    "player": "R",
+    "game": "Metal Unit",
+    "month": "07",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 126
+  },
+  {
+    "player": "R",
+    "game": "Halo 3",
+    "month": "08",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 127
+  },
+  {
+    "player": "P",
+    "game": "Star Wars: Battlefront",
+    "month": "08",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 128
+  },
+  {
+    "player": "T",
+    "game": "Trine: Enchanted Edition",
+    "month": "08",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R",
+      "Br.T"
+    ],
+    "id": 129
+  },
+  {
+    "player": "R",
+    "game": "Trine: Enchanted Edition",
+    "month": "08",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "Br.T"
+    ],
+    "id": 130
+  },
+  {
+    "player": "P",
+    "game": "METAL SLUG",
+    "month": "08",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 131
+  },
+  {
+    "player": "R",
+    "game": "Stronghold Crusader 2",
+    "month": "08",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 132
+  },
+  {
+    "player": "P",
+    "game": "Monument valley",
+    "month": "08",
+    "year": "2023",
+    "platform": "Apple Arcade",
+    "status": "completed",
+    "co-op": [],
+    "id": 133
+  },
+  {
+    "player": "R",
+    "game": "Lost Ruins",
+    "month": "08",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 134
+  },
+  {
+    "player": "P",
+    "game": "The Room",
+    "month": "08",
+    "year": "2023",
+    "platform": "Apple Arcade",
+    "status": "completed",
+    "co-op": [],
+    "id": 135
+  },
+  {
+    "player": "T",
+    "game": "Gears of War 3",
+    "month": "08",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 136
+  },
+  {
+    "player": "R",
+    "game": "Gears of War 3",
+    "month": "08",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 137
+  },
+  {
+    "player": "P",
+    "game": "Counter-Strike: Global Offensive",
+    "month": "08",
+    "year": "2023",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 138
+  },
+  {
+    "player": "R",
+    "game": "Final Fantasy XIII",
+    "month": "08",
+    "year": "2023",
+    "platform": "X360",
+    "status": "completed",
+    "co-op": [],
+    "id": 139
+  },
+  {
+    "player": "R",
+    "game": "Contra Anniversary Collection",
+    "month": "09",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 140
+  },
+  {
+    "player": "P",
+    "game": "The Room Two",
+    "month": "09",
+    "year": "2023",
+    "platform": "Apple Arcade",
+    "status": "completed",
+    "co-op": [],
+    "id": 141
+  },
+  {
+    "player": "R",
+    "game": "Flashout 3D: Enhanced Edition",
+    "month": "09",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 142
+  },
+  {
+    "player": "T",
+    "game": "Trine 2: Complete Story",
+    "month": "09",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R",
+      "Br.T"
+    ],
+    "id": 143
+  },
+  {
+    "player": "R",
+    "game": "Trine 2: Complete Story",
+    "month": "09",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "Br.T"
+    ],
+    "id": 144
+  },
+  {
+    "player": "R",
+    "game": "Halo: Reach",
+    "month": "09",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 145
+  },
+  {
+    "player": "R",
+    "game": "Bloody Hell",
+    "month": "09",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 146
+  },
+  {
+    "player": "R",
+    "game": "Quake 4",
+    "month": "09",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 147
+  },
+  {
+    "player": "T",
+    "game": "Fight'N Rage",
+    "month": "10",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 148
+  },
+  {
+    "player": "R",
+    "game": "Fight'N Rage",
+    "month": "10",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 149
+  },
+  {
+    "player": "R",
+    "game": "Halo 4",
+    "month": "10",
+    "year": "2023",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 150
+  },
+  {
+    "player": "R",
+    "game": "Danger Scavenger",
+    "month": "10",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 151
+  },
+  {
+    "player": "T",
+    "game": "Trine 3: The Artifacts of Power",
+    "month": "10",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R",
+      "Br.T"
+    ],
+    "id": 152
+  },
+  {
+    "player": "R",
+    "game": "Trine 3: The Artifacts of Power",
+    "month": "10",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "Br.T"
+    ],
+    "id": 153
+  },
+  {
+    "player": "T",
+    "game": "Metal Slug",
+    "month": "10",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 154
+  },
+  {
+    "player": "R",
+    "game": "Metal Slug",
+    "month": "10",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 155
+  },
+  {
+    "player": "R",
+    "game": "Tomb Raider: Legend",
+    "month": "11",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 156
+  },
+  {
+    "player": "R",
+    "game": "Gears of War: Ultimate Edition",
+    "month": "12",
+    "year": "2023",
+    "platform": "X1",
+    "status": "re-completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 157
+  },
+  {
+    "player": "R",
+    "game": "Puzzle Quest: Challenge of the Warlords",
+    "month": "12",
+    "year": "2023",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 158
+  },
+  {
+    "player": "R",
+    "game": "The Legend of Oasis",
+    "month": "12",
+    "year": "2023",
+    "platform": "Sega Saturn",
+    "status": "completed",
+    "co-op": [],
+    "id": 159
+  },
+  {
+    "player": "R",
+    "game": "Alwa's Awakening",
+    "month": "12",
+    "year": "2023",
+    "platform": "NES",
+    "status": "completed",
+    "co-op": [],
+    "id": 160
+  },
+  {
+    "player": "R",
+    "game": "Mighty No. 9",
+    "month": "12",
+    "year": "2023",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 161
+  },
+  {
+    "player": "R",
+    "game": "Mega Man Zero 2",
+    "month": "12",
+    "year": "2023",
+    "platform": "GBA",
+    "status": "completed",
+    "co-op": [],
+    "id": 162
+  },
+  {
+    "player": "R",
+    "game": "Shadow Warrior 2",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 163
+  },
+  {
+    "player": "P",
+    "game": "Shadow Warrior 2",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 164
+  },
+  {
+    "player": "R",
+    "game": "Gears of War 2",
+    "month": "01",
+    "year": "2024",
+    "platform": "X1",
+    "status": "re-completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 165
+  },
+  {
+    "player": "P",
+    "game": "Felix the Cat",
+    "month": "01",
+    "year": "2024",
+    "platform": "NES",
+    "status": "dropped",
+    "co-op": [],
+    "id": 166
+  },
+  {
+    "player": "R",
+    "game": "Gears of War 3",
+    "month": "01",
+    "year": "2024",
+    "platform": "X1",
+    "status": "re-completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 167
+  },
+  {
+    "player": "P",
+    "game": "God of War",
+    "month": "01",
+    "year": "2024",
+    "platform": "PS2",
+    "status": "dropped",
+    "co-op": [],
+    "id": 168
+  },
+  {
+    "player": "R",
+    "game": "Freedom Planet",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 169
+  },
+  {
+    "player": "P",
+    "game": "Battlefield: Bad Company 2",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 170
+  },
+  {
+    "player": "R",
+    "game": "Broforce Forever",
+    "month": "01",
+    "year": "2024",
+    "platform": "X1",
+    "status": "re-completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 171
+  },
+  {
+    "player": "P",
+    "game": "Tekken 3",
+    "month": "01",
+    "year": "2024",
+    "platform": "PS1",
+    "status": "completed",
+    "co-op": [],
+    "id": 172
+  },
+  {
+    "player": "P",
+    "game": "Left 4 Dead",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 173
+  },
+  {
+    "player": "P",
+    "game": "Freddi Fish 2",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 174
+  },
+  {
+    "player": "P",
+    "game": "HP and the Sorcerer's Stone",
+    "month": "01",
+    "year": "2024",
+    "platform": "GBA",
+    "status": "dropped",
+    "co-op": [],
+    "id": 175
+  },
+  {
+    "player": "P",
+    "game": "Renfield: Bring Your Own Blood",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 176
+  },
+  {
+    "player": "P",
+    "game": "Bloodstained: Curse of the Moon",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 177
+  },
+  {
+    "player": "P",
+    "game": "Portal 2",
+    "month": "01",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [
+      "Albanec"
+    ],
+    "id": 178
+  },
+  {
+    "player": "T",
+    "game": "Guacamelee! 2",
+    "month": "02",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 179
+  },
+  {
+    "player": "R",
+    "game": "Guacamelee! 2",
+    "month": "02",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T"
+    ],
+    "id": 180
+  },
+  {
+    "player": "P",
+    "game": "DuckTales: Remastered",
+    "month": "02",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 181
+  },
+  {
+    "player": "T",
+    "game": "DuckTales: Remastered",
+    "month": "02",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 182
+  },
+  {
+    "player": "R",
+    "game": "Vampire Survivors",
+    "month": "02",
+    "year": "2024",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 183
+  },
+  {
+    "player": "P",
+    "game": "Castle of Illusion",
+    "month": "02",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 184
+  },
+  {
+    "player": "T",
+    "game": "Shadow Warrior 2",
+    "month": "02",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 185
+  },
+  {
+    "player": "R",
+    "game": "HP and the Order of the Phoenix",
+    "month": "02",
+    "year": "2024",
+    "platform": "PS2",
+    "status": "completed",
+    "co-op": [],
+    "id": 186
+  },
+  {
+    "player": "P",
+    "game": "Castle Crashers",
+    "month": "02",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 187
+  },
+  {
+    "player": "P",
+    "game": "Spider-Man",
+    "month": "02",
+    "year": "2024",
+    "platform": "PS1",
+    "status": "completed",
+    "co-op": [],
+    "id": 188
+  },
+  {
+    "player": "P",
+    "game": "Replay: Final Fantasy III",
+    "month": "02",
+    "year": "2024",
+    "platform": "PSP",
+    "status": "completed",
+    "co-op": [],
+    "id": 189
+  },
+  {
+    "player": "R",
+    "game": "Teslagrad",
+    "month": "03",
+    "year": "2024",
+    "platform": "iPadOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 190
+  },
+  {
+    "player": "P",
+    "game": "Call of Duty",
+    "month": "03",
+    "year": "2024",
+    "platform": "2003",
+    "status": "dropped",
+    "co-op": [],
+    "id": 191
+  },
+  {
+    "player": "R",
+    "game": "Way of the Red",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 192
+  },
+  {
+    "player": "P",
+    "game": "Witcher",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 193
+  },
+  {
+    "player": "R",
+    "game": "Book of Demons",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 194
+  },
+  {
+    "player": "P",
+    "game": "Witcher 2",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 195
+  },
+  {
+    "player": "P",
+    "game": "Crysis Remastered",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 196
+  },
+  {
+    "player": "P",
+    "game": "Halo: Combat Evolved Anniversary",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 197
+  },
+  {
+    "player": "P",
+    "game": "Halo 2: Anniversary",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "dropped",
+    "co-op": [],
+    "id": 198
+  },
+  {
+    "player": "P",
+    "game": "Halo: Reach",
+    "month": "03",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 199
+  },
+  {
+    "player": "R",
+    "game": "Journey to the Savage Planet",
+    "month": "05",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 200
+  },
+  {
+    "player": "P",
+    "game": "Streets of Rage",
+    "month": "05",
+    "year": "2024",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "Friend"
+    ],
+    "id": 201
+  },
+  {
+    "player": "P",
+    "game": "Streets of Rage 2",
+    "month": "05",
+    "year": "2024",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "Friend"
+    ],
+    "id": 202
+  },
+  {
+    "player": "P",
+    "game": "Streets of Rage 3",
+    "month": "05",
+    "year": "2024",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "Friend"
+    ],
+    "id": 203
+  },
+  {
+    "player": "P",
+    "game": "Streets of Rage 4",
+    "month": "05",
+    "year": "2024",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [
+      "Friend"
+    ],
+    "id": 204
+  },
+  {
+    "player": "P",
+    "game": "TMNT: Return of the Shredder",
+    "month": "05",
+    "year": "2024",
+    "platform": "SMD",
+    "status": "completed",
+    "co-op": [
+      "Friend"
+    ],
+    "id": 205
+  },
+  {
+    "player": "P",
+    "game": "Castlevania: Symphony of the Night",
+    "month": "05",
+    "year": "2024",
+    "platform": "PS1",
+    "status": "completed",
+    "co-op": [],
+    "id": 206
+  },
+  {
+    "player": "R",
+    "game": "Moon Hunters",
+    "month": "06",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 207
+  },
+  {
+    "player": "R",
+    "game": "Warhammer: Chaosbane",
+    "month": "06",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 208
+  },
+  {
+    "player": "R",
+    "game": "Doom & Destiny",
+    "month": "06",
+    "year": "2024",
+    "platform": "iOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 209
+  },
+  {
+    "player": "T",
+    "game": "Castlevania: Lords of Shadow",
+    "month": "05",
+    "year": "2024",
+    "platform": "PC",
+    "status": "started",
+    "co-op": [],
+    "id": 210
+  },
+  {
+    "player": "R",
+    "game": "God of War",
+    "month": "07",
+    "year": "2024",
+    "platform": "PS2",
+    "status": "completed",
+    "co-op": [],
+    "id": 211
+  },
+  {
+    "player": "R",
+    "game": "Metroid: Zero Mission",
+    "month": "07",
+    "year": "2024",
+    "platform": "GBA",
+    "status": "completed",
+    "co-op": [],
+    "id": 212
+  },
+  {
+    "player": "R",
+    "game": "Batman: Arkham Origins",
+    "month": "07",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 213
+  },
+  {
+    "player": "R",
+    "game": "Darksiders Genesis",
+    "month": "07",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 214
+  },
+  {
+    "player": "T",
+    "game": "Gears of War: Judgment",
+    "month": "08",
+    "year": "2024",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J",
+      "R"
+    ],
+    "id": 215
+  },
+  {
+    "player": "R",
+    "game": "Gears of War: Judgment",
+    "month": "08",
+    "year": "2024",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J",
+      "T"
+    ],
+    "id": 216
+  },
+  {
+    "player": "T",
+    "game": "Castle Crashers Remastered",
+    "month": "08",
+    "year": "2024",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J",
+      "R"
+    ],
+    "id": 217
+  },
+  {
+    "player": "R",
+    "game": "Castle Crashers Remastered",
+    "month": "08",
+    "year": "2024",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J",
+      "T"
+    ],
+    "id": 218
+  },
+  {
+    "player": "R",
+    "game": "StarCraft 2, 1000 team protoss achievement",
+    "month": "10",
+    "year": "2024",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 219
+  },
+  {
+    "player": "R",
+    "game": "9 Years of Shadows",
+    "month": "11",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 220
+  },
+  {
+    "player": "R",
+    "game": "Prince of Persia: The Lost Crown",
+    "month": "12",
+    "year": "2024",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 221
+  },
+  {
+    "player": "R",
+    "game": "Infinitode 2",
+    "month": "12",
+    "year": "2024",
+    "platform": "Android / iOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 222
+  },
+  {
+    "player": "R",
+    "game": "The Lullaby of Life",
+    "month": "12",
+    "year": "2024",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 223
+  },
+  {
+    "player": "T",
+    "game": "Overcooked! 2",
+    "month": "01",
+    "year": "2025",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "R",
+      "J"
+    ],
+    "id": 224
+  },
+  {
+    "player": "R",
+    "game": "Overcooked! 2",
+    "month": "01",
+    "year": "2025",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "T",
+      "J"
+    ],
+    "id": 225
+  },
+  {
+    "player": "P",
+    "game": "Return of the Obra Dinn",
+    "month": "01",
+    "year": "2025",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [
+      "A"
+    ],
+    "id": 226
+  },
+  {
+    "player": "P",
+    "game": "Test Drive",
+    "month": "07",
+    "year": "2025",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 227
+  }
+];
+        let currentData = [...originalData];
+        
+        // DOM elements
+        const tableBody = document.getElementById('tableBody');
+        const playerFilter = document.getElementById('playerFilter');
+        const statusFilter = document.getElementById('statusFilter');
+        const platformFilter = document.getElementById('platformFilter');
+        const gameSearch = document.getElementById('gameSearch');
+        const resetBtn = document.getElementById('resetFilters');
+        
+        // Initialize platform filter options
+        function initPlatformFilter() {
+            const platforms = [...new Set(originalData.map(item => item.platform))];
+            platforms.sort().forEach(platform => {
+                const option = document.createElement('option');
+                option.value = platform;
+                option.textContent = platform;
+                platformFilter.appendChild(option);
+            });
+        }
+        
+        // Render table with current data
+        function renderTable() {
+            tableBody.innerHTML = '';
+
+            currentData.sort((a, b) => {
+                return b.id - a.id; // Sort by ID descending
+                if (b.year !== a.year) {
+                    return b.year - a.year; // Sort by year descending
+                }
+                return b.month - a.month; // Sort by month descending
+            });
+            
+            if (currentData.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="7" class="no-results">No games match your filters</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+            
+            currentData.forEach(item => {
+                const row = document.createElement('tr');
+                
+                // Handle co-op partners display
+                let coopDisplay = 'No';
+                if (item['co-op'] && Array.isArray(item['co-op'])) {
+                    if (item['co-op'].length > 0) {
+                        coopDisplay = item['co-op'].join(', ');
+                    }
+                } else if (item['co-op']) {
+                    // Backward compatibility with boolean/string values
+                    coopDisplay = item['co-op'] === true ? 'Yes' : item['co-op'];
+                }
+                
+                row.innerHTML = `
+                    <td>${item.player}</td>
+                    <td>${item.game}</td>
+                    <td>${item.month}</td>
+                    <td>${item.year}</td>
+                    <td>${item.platform}</td>
+                    <td class="${item.status}">${item.status.charAt(0).toUpperCase() + item.status.slice(1)}</td>
+                    <td>${coopDisplay}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Filter data based on current filters
+        function filterData() {
+            const playerValue = playerFilter.value;
+            const statusValue = statusFilter.value;
+            const platformValue = platformFilter.value;
+            const searchValue = gameSearch.value.toLowerCase();
+            
+            currentData = originalData.filter(item => {
+                return (playerValue === '' || item.player === playerValue) &&
+                       (statusValue === '' || item.status === statusValue) &&
+                       (platformValue === '' || item.platform === platformValue) &&
+                       (searchValue === '' || item.game.toLowerCase().includes(searchValue));
+            });
+            
+            renderTable();
+        }
+        
+        // Sort data by column
+        function sortData(column, direction) {
+            currentData.sort((a, b) => {
+                // Handle numeric columns differently if needed
+                if (column === 'month' || column === 'year') {
+                    return direction === 'asc' 
+                        ? a[column] - b[column] 
+                        : b[column] - a[column];
+                }
+                
+                // Special handling for co-op column
+                if (column === 'co-op') {
+                    const aValue = Array.isArray(a[column]) ? a[column].length : 0;
+                    const bValue = Array.isArray(b[column]) ? b[column].length : 0;
+                    return direction === 'asc' ? aValue - bValue : bValue - aValue;
+                }
+                
+                // Standard string comparison
+                const aValue = String(a[column]).toLowerCase();
+                const bValue = String(b[column]).toLowerCase();
+                
+                return direction === 'asc'
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            });
+            
+            renderTable();
+        }
+        
+        // Reset all filters
+        function resetFilters() {
+            playerFilter.value = '';
+            statusFilter.value = '';
+            platformFilter.value = '';
+            gameSearch.value = '';
+            filterData();
+        }
+        
+        // Initialize the table
+        function init() {
+            initPlatformFilter();
+            filterData();
+            
+            // Set up event listeners
+            playerFilter.addEventListener('change', filterData);
+            statusFilter.addEventListener('change', filterData);
+            platformFilter.addEventListener('change', filterData);
+            gameSearch.addEventListener('input', filterData);
+            resetBtn.addEventListener('click', resetFilters);
+            
+            // Set up sorting
+            document.querySelectorAll('th[data-column]').forEach(th => {
+                th.addEventListener('click', () => {
+                    const column = th.getAttribute('data-column');
+                    const currentDir = th.getAttribute('data-sort');
+                    const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+                    
+                    // Reset all sort indicators
+                    document.querySelectorAll('th[data-column]').forEach(header => {
+                        header.removeAttribute('data-sort');
+                    });
+                    
+                    // Set new sort indicator
+                    th.setAttribute('data-sort', newDir);
+                    th.classList.add('sort-' + newDir);
+                    
+                    sortData(column, newDir);
+                });
+            });
+        }
+        
+        // Start the application
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
