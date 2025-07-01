@@ -320,7 +320,7 @@ async def read_root():
                 }}
             }}
 
-            async function saveData() {{
+            async function collectData() {{
                 const gameData = {{
                     player: document.getElementById('player').value,
                     game: htmlEncode(document.getElementById('search').value),
@@ -330,7 +330,10 @@ async def read_root():
                     status: document.getElementById('status').value,
                     "co-op": document.getElementById('co-op').value.split('\\n').filter(line => htmlEncode(line.trim()))
                 }};
+                return gameData;
+            }}
 
+            async function saveWithData(gameData) {{
                 if (!gameData.game) {{
                     alert('Пожалуйста, введите название игры');
                     return;
@@ -366,17 +369,36 @@ async def read_root():
                 }}
             }}
 
-            async function editData() {{
-                const gameData = {{
-                    player: document.getElementById('player').value,
-                    game: htmlEncode(document.getElementById('search').value),
-                    month: document.getElementById('month').value.padStart(2, '0'),
-                    year: document.getElementById('year').value,
-                    platform: document.getElementById('platform').value,
-                    status: document.getElementById('status').value,
-                    "co-op": document.getElementById('co-op').value.split('\\n').filter(line => htmlEncode(line.trim()))
-                }};
+            async function duplicateCoopPlayer(gameData, player) {{
+                if (gameData.player == player) {{
+                    return null;
+                }}
+                let copy = {{ ...gameData }};
+                for (let i = 0; i < copy["co-op"].length; i++) {{
+                    if (copy["co-op"][i] == player) {{
+                        copy["co-op"][i] = gameData.player;
+                        copy.player = player;
+                        return copy;
+                    }}
+                }}
+                return null;
+            }}
 
+            async function saveData() {{
+                const gameData = await collectData();
+                await saveWithData(gameData);
+
+                /*for (const type of ["T", "R", "P"]) {{
+                    const dup = await duplicateCoopPlayer(gameData, type);
+                    console.log(type)
+                    console.log(dup)
+                    if (dup) {{
+                        await saveWithData(dup);
+                    }}
+                }}*/
+            }}
+
+            async function editWithData(gameData) {{
                 if (!gameData.game) {{
                     alert('Пожалуйста, введите название игры');
                     return;
@@ -415,6 +437,10 @@ async def read_root():
                 }} catch (error) {{
                     showNotification(`Ошибка при отправке данных: ${{error}}`, 'error');
                 }}
+            }}
+
+            async function editData() {{
+                await editWithData(await collectData());
             }}
 
             async function deleteData() {{
