@@ -109,6 +109,30 @@ async def read_root():
             button:hover {{
                 background-color: #45a049;
             }}
+            .delete-button {{
+                background-color: #f44336;
+                color: white;
+            }}
+
+            .delete-button:hover {{
+                background-color: #e53935;
+            }}
+
+            .open-source-button {{
+                background-color: #2196F3;
+                color: white;
+            }}
+
+            .open-source-button:hover {{
+                background-color: #1976D2;
+            }}
+
+            .button-group {{
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }}
+
         </style>
     </head>
     <body>
@@ -187,7 +211,11 @@ async def read_root():
                 <textarea id="co-op" rows="4" placeholder="CO-OP игроки (по одной строке на каждую запись)"></textarea>
             </div>
 
-            <button onclick="saveData()">Сохранить</button>
+            <div class="button-group">
+                <button onclick="saveData()">Сохранить</button>
+                <button class="delete-button" onclick="deleteData()">Удалить по ID</button>
+                <button class="open-source-button" onclick="openSourceData()">Открыть исходные данные ↗</button>
+            </div>
         </div>
 
         <script>
@@ -271,6 +299,43 @@ async def read_root():
                 }} catch (error) {{
                     alert(`Ошибка при отправке данных: ${{error}}`);
                 }}
+            }}
+
+            async function deleteData() {{
+                const id = prompt('Введите ID для удаления:');
+                if (!id) return;
+
+                const confirmDelete = confirm('Вы уверены, что хотите удалить данные с ID: ' + id + '?');
+                if (!confirmDelete) return;
+
+                try {{
+                    const response = await fetch('https://api.github.com/repos/{github_owner}/{github_repo}/actions/workflows/json_editor.yml/dispatches', {{
+                        method: 'POST',
+                        headers: {{
+                            'Authorization': `Bearer {github_token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }},
+                        body: JSON.stringify({{
+                            ref: 'main',
+                            inputs: {{
+                                delete_walkthrough_id: id
+                            }}
+                        }})
+                    }});
+
+                    if (response.ok) {{
+                        alert('Данные успешно удалены!');
+                    }} else {{
+                        const error = await response.json();
+                        alert(`Ошибка: ${{error.message}}`);
+                    }}
+                }} catch (error) {{
+                    alert(`Ошибка при удалении данных: ${{error}}`);
+                }}
+            }}
+
+            function openSourceData() {{
+                window.open('https://github.com/{github_owner}/{github_repo}/blob/json_data/estafeta_games_data.json', '_blank');
             }}
         </script>
     </body>
