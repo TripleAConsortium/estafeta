@@ -4,13 +4,22 @@ on:
   push:
     paths:
       - '*.json'
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      wait_time:
+        description: 'Time to wait before executing the script (in seconds)'
+        required: false
+        default: '0'
 
 jobs:
   convert-and-push:
     runs-on: ubuntu-latest
     
     steps:
+    - name: Wait before executing the script
+      run: |
+        sleep ${{ github.event.inputs.wait_time }}
+
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
