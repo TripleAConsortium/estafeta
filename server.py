@@ -133,6 +133,37 @@ async def read_root():
                 gap: 10px;
             }}
 
+            .notification {{
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 15px 25px;
+                border-radius: 4px;
+                color: white;
+                font-weight: bold;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }}
+
+            .notification.show {{
+                opacity: 1;
+            }}
+
+            .notification.success {{
+                background-color: #4CAF50;
+            }}
+
+            .notification.error {{
+                background-color: #f44336;
+            }}
+
+            .notification.warning {{
+                background-color: #ff9800;
+            }}
+
         </style>
     </head>
     <body>
@@ -284,7 +315,7 @@ async def read_root():
                     }});
                     return response.ok;
                 }} catch (error) {{
-                    alert(`Ошибка при отправке данных: ${{error}}`);
+                    showNotification(`Ошибка при отправке данных: ${{error}}`, 'error');
                     return false;
                 }}
             }}
@@ -322,16 +353,16 @@ async def read_root():
 
                     if (response.ok) {{
                         const htmlGenSuccess = await trigger_html_generation();
-                        alert('Данные успешно отправлены!');
+                        showNotification('Данные успешно отправлены! Таблица обновится через пару минут.');
                         document.getElementById('search').value = '';
                         document.getElementById('platform').value = '';
                         document.getElementById('co-op').value = '';
                     }} else {{
                         const error = await response.json();
-                        alert(`Ошибка: ${{error.message}}`);
+                        showNotification(`Ошибка: ${{error.message}}`, 'error');
                     }}
                 }} catch (error) {{
-                    alert(`Ошибка при отправке данных: ${{error}}`);
+                    showNotification(`Ошибка при отправке данных: ${{error}}`, 'error');
                 }}
             }}
 
@@ -373,16 +404,16 @@ async def read_root():
 
                     if (response.ok) {{
                         const htmlGenSuccess = await trigger_html_generation();
-                        alert('Данные успешно отправлены!');
+                        showNotification('Данные успешно отправлены! Таблица обновится через пару минут.');
                         document.getElementById('search').value = '';
                         document.getElementById('platform').value = '';
                         document.getElementById('co-op').value = '';
                     }} else {{
                         const error = await response.json();
-                        alert(`Ошибка: ${{error.message}}`);
+                        showNotification(`Ошибка: ${{error.message}}`, 'error');
                     }}
                 }} catch (error) {{
-                    alert(`Ошибка при отправке данных: ${{error}}`);
+                    showNotification(`Ошибка при отправке данных: ${{error}}`, 'error');
                 }}
             }}
 
@@ -410,13 +441,13 @@ async def read_root():
 
                     if (response.ok) {{
                         const htmlGenSuccess = await trigger_html_generation();
-                        alert('Данные успешно удалены!');
+                        showNotification('Данные успешно удалены! Таблица обновится через пару минут.');
                     }} else {{
                         const error = await response.json();
-                        alert(`Ошибка: ${{error.message}}`);
+                        showNotification(`Ошибка: ${{error.message}}`, 'error');
                     }}
                 }} catch (error) {{
-                    alert(`Ошибка при удалении данных: ${{error}}`);
+                    showNotification(`Ошибка при удалении данных: ${{error}}`, 'error');
                 }}
             }}
 
@@ -427,7 +458,19 @@ async def read_root():
             function openTable() {{
                 window.open('https://{github_owner}.github.io/{github_repo}', '_blank');
             }}
+
+            function showNotification(message, type = 'success') {{
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = `notification ${{type}}`;
+                notification.classList.add('show');
+                
+                setTimeout(() => {{
+                    notification.classList.remove('show');
+                }}, 8000);
+            }}
         </script>
+        <div id="notification" class="notification"></div>
     </body>
     </html>
     """
