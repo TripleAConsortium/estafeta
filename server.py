@@ -216,6 +216,7 @@ async def read_root():
                 <button class="delete-button" onclick="deleteData()">Удалить по ID</button>
                 <button class="open-source-button" onclick="editData()">Изменить по ID</button>
                 <button class="open-source-button" onclick="openSourceData()">Открыть исходные данные ↗</button>
+                <button class="open-source-button" onclick="openTable()">Открыть таблицу ↗</button>
             </div>
         </div>
 
@@ -266,6 +267,28 @@ async def read_root():
                 suggestionsDiv.style.display = data.length ? 'block' : 'none';
             }}
 
+            async function trigger_html_generation() {{
+                try {{
+                    const response = await fetch('https://api.github.com/repos/{github_owner}/{github_repo}/actions/workflows/json_to_html_launcher.yml/dispatches', {{
+                        method: 'POST',
+                        headers: {{
+                            'Authorization': `Bearer {github_token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }},
+                        body: JSON.stringify({{
+                            ref: 'main',
+                            inputs: {{
+                                wait_time: "40"
+                            }}
+                        }})
+                    }});
+                    return response.ok;
+                }} catch (error) {{
+                    alert(`Ошибка при отправке данных: ${{error}}`);
+                    return false;
+                }}
+            }}
+
             async function saveData() {{
                 const gameData = {{
                     player: document.getElementById('player').value,
@@ -298,6 +321,7 @@ async def read_root():
                     }});
 
                     if (response.ok) {{
+                        const htmlGenSuccess = await trigger_html_generation();
                         alert('Данные успешно отправлены!');
                         document.getElementById('search').value = '';
                         document.getElementById('platform').value = '';
@@ -348,6 +372,7 @@ async def read_root():
                     console.log(JSON.stringify(gameData))
 
                     if (response.ok) {{
+                        const htmlGenSuccess = await trigger_html_generation();
                         alert('Данные успешно отправлены!');
                         document.getElementById('search').value = '';
                         document.getElementById('platform').value = '';
@@ -384,6 +409,7 @@ async def read_root():
                     }});
 
                     if (response.ok) {{
+                        const htmlGenSuccess = await trigger_html_generation();
                         alert('Данные успешно удалены!');
                     }} else {{
                         const error = await response.json();
@@ -396,6 +422,10 @@ async def read_root():
 
             function openSourceData() {{
                 window.open('https://github.com/{github_owner}/{github_repo}/blob/json_data/estafeta_games_data.json', '_blank');
+            }}
+
+            function openTable() {{
+                window.open('https://{github_owner}.github.io/{github_repo}', '_blank');
             }}
         </script>
     </body>
