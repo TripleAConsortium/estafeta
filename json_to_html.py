@@ -106,6 +106,9 @@ def generate_html(json_data):
             <option value="">All Statuses</option>
             <option value="completed">Completed</option>
             <option value="dropped">Dropped</option>
+            <option value="re-completed">Re-completed</option>
+            <option value="frozen">Frozen</option>
+            <option value="started">Started</option>
         </select>
         
         <select id="platformFilter">
@@ -115,6 +118,8 @@ def generate_html(json_data):
         <input type="text" id="gameSearch" placeholder="Search by game name...">
         
         <button id="resetFilters">Reset Filters</button>
+        
+        <button id="senderUrl">Sender ↗</button>
     </div>
     
     <table id="gamesTable">
@@ -146,6 +151,7 @@ def generate_html(json_data):
         const platformFilter = document.getElementById('platformFilter');
         const gameSearch = document.getElementById('gameSearch');
         const resetBtn = document.getElementById('resetFilters');
+        const senderUrlBtn = document.getElementById('senderUrl');
         
         // Initialize platform filter options
         function initPlatformFilter() {{
@@ -259,6 +265,11 @@ def generate_html(json_data):
             gameSearch.value = '';
             filterData();
         }}
+
+        // Open sender URL in new tab
+        function openSenderUrl() {{
+            window.open('https://kromeshnie.sbs', '_blank');
+        }}
         
         // Initialize the table
         function init() {{
@@ -271,6 +282,7 @@ def generate_html(json_data):
             platformFilter.addEventListener('change', filterData);
             gameSearch.addEventListener('input', filterData);
             resetBtn.addEventListener('click', resetFilters);
+            senderUrlBtn.addEventListener('click', openSenderUrl);
             
             // Set up sorting
             document.querySelectorAll('th[data-column]').forEach(th => {{
