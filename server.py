@@ -1,17 +1,22 @@
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Response, Cookie, Depends
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 import subprocess
 import json
 from datetime import datetime
 import os
 from dotenv import load_dotenv
+import httpx
+from urllib.parse import urlencode
 
 load_dotenv()
 port = os.getenv('PORT')
 github_token = os.getenv('GITHUB_TOKEN')
 github_owner = os.getenv('GITHUB_OWNER')
 github_repo = os.getenv('GITHUB_REPO')
+twitch_client_id = os.getenv('TWITCH_CLIENT_ID')
+twitch_client_secret = os.getenv('TWITCH_CLIENT_SECRET')
+twitch_redirect_uri = os.getenv('TWITCH_REDIRECT_URI')
 
 app = FastAPI()
 
@@ -23,10 +28,154 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Twitch OAuth endpoints
+TWITCH_AUTH_URL = "https://id.twitch.tv/oauth2/authorize"
+TWITCH_TOKEN_URL = "https://id.twitch.tv/oauth2/token"
+TWITCH_VALIDATE_URL = "https://id.twitch.tv/oauth2/validate"
+TWITCH_API_URL = "https://api.twitch.tv/helix"
+
+async def get_twitch_user_info(access_token: str):
+    """Get user info from Twitch using access token"""
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Client-Id': twitch_client_id
+    }
+    
+    async with httpx.AsyncClient() as client:
+        # First validate the token
+        validate_response = await client.get(TWITCH_VALIDATE_URL, headers=headers)
+        if validate_response.status_code != 200:
+            return None
+            
+        validate_data = validate_response.json()
+        user_id = validate_data['user_id']
+        
+        # Get user info
+        user_response = await client.get(f'{TWITCH_API_URL}/users?id={user_id}', headers=headers)
+        if user_response.status_code != 200:
+            return None
+            
+        user_data = user_response.json()
+        return user_data['data'][0] if user_data['data'] else None
+
+@app.get("/auth/twitch")
+async def auth_twitch():
+    """Redirect to Twitch authentication"""
+    params = {
+        'client_id': twitch_client_id,
+        'redirect_uri': twitch_redirect_uri,
+        'response_type': 'code',
+        'scope': 'channel:manage:broadcast',
+        'force_verify': 'false'
+    }
+    
+    auth_url = f"{TWITCH_AUTH_URL}?{urlencode(params)}"
+    return RedirectResponse(auth_url)
+
+@app.get("/auth/twitch/callback")
+async def auth_twitch_callback(code: str, response: Response):
+    """Handle Twitch authentication callback"""
+    # Exchange code for access token
+    data = {
+        'client_id': twitch_client_id,
+        'client_secret': twitch_client_secret,
+        'code': code,
+        'grant_type': 'authorization_code',
+        'redirect_uri': twitch_redirect_uri
+    }
+    
+    async with httpx.AsyncClient() as client:
+        token_response = await client.post(TWITCH_TOKEN_URL, data=data)
+        if token_response.status_code != 200:
+            return {"error": "Failed to get access token"}
+            
+        token_data = token_response.json()
+        access_token = token_data['access_token']
+        refresh_token = token_data['refresh_token']
+        
+        # Get user info
+        user_info = await get_twitch_user_info(access_token)
+        if not user_info:
+            return {"error": "Failed to get user info"}
+            
+        # Set cookies with user info and tokens
+        response = RedirectResponse("/")
+        response.set_cookie("twitch_access_token", access_token, httponly=True, max_age=3600)
+        response.set_cookie("twitch_refresh_token", refresh_token, httponly=True, max_age=2592000)  # 30 days
+        response.set_cookie("twitch_user_id", user_info['id'], max_age=3600)
+        response.set_cookie("twitch_user_login", user_info['login'], max_age=3600)
+        response.set_cookie("twitch_user_name", user_info['display_name'], max_age=3600)
+        
+        return response
+
+@app.get("/logout")
+async def logout(response: Response):
+    """Logout from Twitch"""
+    response = RedirectResponse("/")
+    response.delete_cookie("twitch_access_token")
+    response.delete_cookie("twitch_refresh_token")
+    response.delete_cookie("twitch_user_id")
+    response.delete_cookie("twitch_user_login")
+    response.delete_cookie("twitch_user_name")
+    return response
+
+async def get_twitch_credentials(request: Request):
+    """Get Twitch credentials from cookies"""
+    access_token = request.cookies.get("twitch_access_token")
+    user_id = request.cookies.get("twitch_user_id")
+    user_login = request.cookies.get("twitch_user_login")
+    
+    if access_token and user_id:
+        return {
+            "access_token": access_token,
+            "user_id": user_id,
+            "user_login": user_login
+        }
+    return None
+
 @app.get("/", response_class=HTMLResponse)
-async def read_root():
+async def read_root(request: Request):
     current_year = datetime.now().year
     current_month = datetime.now().month
+    
+    # Check if user is logged in to Twitch
+    twitch_credentials = await get_twitch_credentials(request)
+    is_twitch_logged_in = twitch_credentials is not None
+    twitch_user_name = request.cookies.get("twitch_user_name", "")
+    
+    twitch_section = ""
+    if is_twitch_logged_in:
+        twitch_section = f"""
+        <div class="form-container" style="margin-top: 20px;">
+            <h2>Twitch Integration (Logged in as {twitch_user_name})</h2>
+            <div class="form-group">
+                <label for="stream-title">Stream Title:</label>
+                <input type="text" id="stream-title" placeholder="Enter stream title">
+            </div>
+            <div class="form-group">
+                <label for="stream-game">Game Name:</label>
+                <input type="text" id="stream-game" placeholder="Enter game name" oninput="fetchGameSuggestions()">
+                <div id="game-suggestions" class="suggestions" style="display: none;"></div>
+            </div>
+            <div class="form-group">
+                <label for="stream-language">Language:</label>
+                <input type="text" id="stream-language" value="ru" placeholder="Stream language">
+            </div>
+            <div class="form-group">
+                <label for="stream-tags">Tags (comma separated):</label>
+                <input type="text" id="stream-tags" placeholder="Enter tags">
+            </div>
+            <button onclick="updateStreamInfo()">Update Stream Info</button>
+            <button class="delete-button" onclick="logoutTwitch()" style="margin-top: 10px;">Logout from Twitch</button>
+        </div>
+        """
+    else:
+        twitch_section = """
+        <div class="form-container" style="margin-top: 20px;">
+            <h2>Twitch Integration</h2>
+            <button onclick="loginTwitch()" style="background-color: #6441a5;">Login with Twitch</button>
+        </div>
+        """
     
     return f"""
     <!DOCTYPE html>
@@ -125,6 +274,15 @@ async def read_root():
 
             .open-source-button:hover {{
                 background-color: #1976D2;
+            }}
+
+            .twitch-button {{
+                background-color: #6441a5;
+                color: white;
+            }}
+
+            .twitch-button:hover {{
+                background-color: #4e3680;
             }}
 
             .button-group {{
@@ -251,6 +409,8 @@ async def read_root():
             </div>
         </div>
 
+        {twitch_section}
+
         <script>
 
             function htmlEncode(str) {{
@@ -290,6 +450,43 @@ async def read_root():
                     
                     div.onclick = () => {{
                         document.getElementById('search').value = item.name;
+                        suggestionsDiv.style.display = 'none';
+                    }};
+                    suggestionsDiv.appendChild(div);
+                }});
+
+                suggestionsDiv.style.display = data.length ? 'block' : 'none';
+            }}
+
+            async function fetchGameSuggestions() {{
+                const input = document.getElementById('stream-game').value;
+                const suggestionsDiv = document.getElementById('game-suggestions');
+
+                if (input.length < 3) {{
+                    suggestionsDiv.style.display = 'none';
+                    return;
+                }}
+
+                const response = await fetch(`/search?query=${{input}}`);
+                const data = await response.json();
+
+                suggestionsDiv.innerHTML = '';
+                data.forEach(item => {{
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    
+                    if (item.box_art_url) {{
+                        const img = document.createElement('img');
+                        img.src = item.box_art_url;
+                        div.appendChild(img);
+                    }}
+                    
+                    const text = document.createElement('span');
+                    text.innerText = item.name;
+                    div.appendChild(text);
+                    
+                    div.onclick = () => {{
+                        document.getElementById('stream-game').value = item.name;
                         suggestionsDiv.style.display = 'none';
                     }};
                     suggestionsDiv.appendChild(div);
@@ -485,6 +682,63 @@ async def read_root():
                 window.open('https://{github_owner}.github.io/{github_repo}', '_blank');
             }}
 
+            function loginTwitch() {{
+                window.location.href = '/auth/twitch';
+            }}
+
+            function logoutTwitch() {{
+                window.location.href = '/logout';
+            }}
+
+            async function updateStreamInfo() {{
+                const title = document.getElementById('stream-title').value;
+                const game = document.getElementById('stream-game').value;
+                const language = document.getElementById('stream-language').value;
+                const tags = document.getElementById('stream-tags').value.split(',').map(tag => tag.trim()).filter(tag => tag);
+
+                if (!title || !game) {{
+                    showNotification('Пожалуйста, заполните название стрима и игры', 'error');
+                    return;
+                }}
+
+                try {{
+                    // First search for the game ID
+                    const searchResponse = await fetch(`/search?query=${{encodeURIComponent(game)}}`);
+                    const searchData = await searchResponse.json();
+                    
+                    if (!searchData || searchData.length === 0) {{
+                        showNotification('Игра не найдена на Twitch', 'error');
+                        return;
+                    }}
+
+                    const gameId = searchData[0].id;
+                    
+                    // Update stream info
+                    const updateResponse = await fetch('/update_stream', {{
+                        method: 'POST',
+                        headers: {{
+                            'Content-Type': 'application/json',
+                        }},
+                        body: JSON.stringify({{
+                            title: title,
+                            game_id: gameId,
+                            broadcaster_language: language,
+                            tags: tags
+                        }})
+                    }});
+
+                    const result = await updateResponse.json();
+                    
+                    if (updateResponse.ok) {{
+                        showNotification('Информация о стриме успешно обновлена!', 'success');
+                    }} else {{
+                        showNotification(`Ошибка: ${{result.detail || 'Неизвестная ошибка'}}`, 'error');
+                    }}
+                }} catch (error) {{
+                    showNotification(`Ошибка при обновлении информации: ${{error}}`, 'error');
+                }}
+            }}
+
             function showNotification(message, type = 'success') {{
                 const notification = document.getElementById('notification');
                 notification.textContent = message;
@@ -511,6 +765,41 @@ async def search(query: str):
         return data['data']
     except json.JSONDecodeError:
         return {"data": []}
+
+@app.post("/update_stream")
+async def update_stream(request: Request, twitch_credentials: dict = Depends(get_twitch_credentials)):
+    """Update stream information on Twitch"""
+    if not twitch_credentials:
+        return {"error": "Not authenticated with Twitch"}, 401
+        
+    data = await request.json()
+    
+    # Prepare the request to Twitch API
+    url = f"{TWITCH_API_URL}/channels?broadcaster_id={twitch_credentials['user_id']}"
+    headers = {
+        'Authorization': f'Bearer {twitch_credentials["access_token"]}',
+        'Client-Id': twitch_client_id,
+        'Content-Type': 'application/json'
+    }
+    
+    # Prepare the payload
+    payload = {}
+    if 'title' in data:
+        payload['title'] = data['title']
+    if 'game_id' in data:
+        payload['game_id'] = data['game_id']
+    if 'broadcaster_language' in data:
+        payload['broadcaster_language'] = data['broadcaster_language']
+    if 'tags' in data:
+        payload['tags'] = data['tags']
+    
+    async with httpx.AsyncClient() as client:
+        response = await client.patch(url, headers=headers, json=payload)
+        
+        if response.status_code == 200:
+            return {"status": "success", "message": "Stream information updated successfully"}
+        else:
+            return {"error": f"Twitch API error: {response.status_code}", "details": response.text}, response.status_code
 
 if __name__ == "__main__":
     import uvicorn
