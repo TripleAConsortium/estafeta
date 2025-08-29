@@ -2476,5 +2476,15 @@
       "R"
     ],
     "id": 229
+  },
+  {
+    "player": "T",
+    "game": "Frontier Hunter: Erza's Wheel of Fortune",
+    "month": "08",
+    "year": "2025",
+    "platform": "macOS",
+    "status": "completed",
+    "co-op": [],
+    "id": 230
   }
 ]
