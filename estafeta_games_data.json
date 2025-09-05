@@ -2506,5 +2506,15 @@
     "status": "re-completed",
     "co-op": [],
     "id": 232
+  },
+  {
+    "player": "R",
+    "game": "Зоя",
+    "month": "12",
+    "year": "2020",
+    "platform": "capacitor",
+    "status": "frozen",
+    "co-op": [],
+    "id": 233
   }
 ]
