@@ -2496,5 +2496,15 @@
     "status": "re-completed",
     "co-op": [],
     "id": 231
+  },
+  {
+    "player": "R",
+    "game": "Зоя",
+    "month": "12",
+    "year": "2022",
+    "platform": "capacitor",
+    "status": "re-completed",
+    "co-op": [],
+    "id": 232
   }
 ]
