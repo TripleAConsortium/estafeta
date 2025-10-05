@@ -2536,5 +2536,17 @@
     "status": "completed",
     "co-op": [],
     "id": 235
+  },
+  {
+    "player": "T",
+    "game": "Gears of War 4",
+    "month": "08",
+    "year": "2025",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "J"
+    ],
+    "id": 236
   }
 ]
