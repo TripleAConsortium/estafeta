@@ -2558,5 +2558,17 @@
     "status": "completed",
     "co-op": [],
     "id": 237
+  },
+  {
+    "player": "T",
+    "game": "Lara Croft and the Temple of Osiris",
+    "month": "07",
+    "year": "2025",
+    "platform": "X1",
+    "status": "completed",
+    "co-op": [
+      "R"
+    ],
+    "id": 238
   }
 ]
