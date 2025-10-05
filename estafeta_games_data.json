@@ -2516,5 +2516,15 @@
     "status": "frozen",
     "co-op": [],
     "id": 233
+  },
+  {
+    "player": "R",
+    "game": "Harry Potter and the Half-Blood Prince",
+    "month": "10",
+    "year": "2025",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [],
+    "id": 234
   }
 ]
