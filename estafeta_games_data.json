@@ -2602,5 +2602,17 @@
     "status": "completed",
     "co-op": [],
     "id": 241
+  },
+  {
+    "player": "R",
+    "game": "Palworld",
+    "month": "02",
+    "year": "2026",
+    "platform": "PC",
+    "status": "completed",
+    "co-op": [
+      "F-Friend"
+    ],
+    "id": 242
   }
 ]
